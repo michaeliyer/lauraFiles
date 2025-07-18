@@ -624,7 +624,24 @@ async function handleFormSubmit(e) {
   e.preventDefault();
 
   const formData = new FormData(cocktailForm);
-  let theJpegValue = uploadedImagePath || formData.get("theJpeg") || null;
+
+  console.log("Form submission - uploadedImagePath:", uploadedImagePath);
+  console.log("Form submission - hidden field value:", formData.get("theJpeg"));
+
+  // Handle image persistence logic
+  let theJpegValue = null;
+  if (uploadedImagePath) {
+    // New image was uploaded
+    theJpegValue = uploadedImagePath;
+    console.log("Using new uploaded image:", theJpegValue);
+  } else if (formData.get("theJpeg")) {
+    // Existing image should be preserved
+    theJpegValue = formData.get("theJpeg");
+    console.log("Preserving existing image:", theJpegValue);
+  } else {
+    console.log("No image to preserve");
+  }
+
   const cocktailData = {
     theCock: formData.get("theCock"),
     theIngredients: formData.get("theIngredients"),
@@ -632,6 +649,8 @@ async function handleFormSubmit(e) {
     theJpeg: theJpegValue,
     theComment: formData.get("theComment") || null,
   };
+
+  console.log("Final cocktail data:", cocktailData);
 
   try {
     if (editingId) {
@@ -707,6 +726,9 @@ function performEditCocktail(id) {
   const cocktail = cocktails.find((c) => c._id === id);
   if (!cocktail) return;
 
+  console.log("Editing cocktail:", cocktail);
+  console.log("Original image URL:", cocktail.theJpeg);
+
   editingId = id;
   formTitle.textContent = "Edit Cocktail";
   cancelBtn.style.display = "inline-flex";
@@ -718,6 +740,28 @@ function performEditCocktail(id) {
   document.getElementById("theRecipe").value = cocktail.theRecipe;
   document.getElementById("theJpeg").value = cocktail.theJpeg || "";
   document.getElementById("theComment").value = cocktail.theComment || "";
+
+  console.log(
+    "Hidden field value after setting:",
+    document.getElementById("theJpeg").value
+  );
+
+  // Add a temporary debug button to check the hidden field
+  const debugBtn = document.createElement("button");
+  debugBtn.textContent = "Debug: Check Hidden Field";
+  debugBtn.onclick = () => {
+    console.log(
+      "Current hidden field value:",
+      document.getElementById("theJpeg").value
+    );
+    console.log("Current uploadedImagePath:", uploadedImagePath);
+    console.log("Current editingId:", editingId);
+  };
+  debugBtn.style.position = "fixed";
+  debugBtn.style.top = "10px";
+  debugBtn.style.right = "10px";
+  debugBtn.style.zIndex = "9999";
+  document.body.appendChild(debugBtn);
   // this is prob ok
   // Show existing image in preview if it exists
   if (cocktail.theJpeg) {
@@ -727,7 +771,8 @@ function performEditCocktail(id) {
         <img src="${cocktail.theJpeg}" alt="Current image" style="max-width:120px;max-height:80px;border-radius:8px;box-shadow:0 2px 8px #ccc;">
         <div style="color:green;font-size:12px;">Current image</div>
       `;
-      uploadedImagePath = cocktail.theJpeg;
+      // Don't set uploadedImagePath here - we want to preserve the original
+      // uploadedImagePath will only be set when a new image is uploaded
     } else {
       // It's a local/broken image
       imagePreview.innerHTML = `
@@ -757,7 +802,12 @@ function cancelEdit() {
 
 // Reset form
 function resetForm() {
-  cocktailForm.reset();
+  // Manually clear form fields instead of using reset() to preserve hidden fields
+  document.getElementById("theCock").value = "";
+  document.getElementById("theIngredients").value = "";
+  document.getElementById("theRecipe").value = "";
+  document.getElementById("theComment").value = "";
+
   editingId = null;
   uploadedImagePath = null;
   formTitle.textContent = "Add New Cocktail";
@@ -773,6 +823,9 @@ function resetForm() {
   if (fileInput) {
     fileInput.value = "";
   }
+
+  // Clear the hidden theJpeg field
+  document.getElementById("theJpeg").value = "";
 }
 
 // Delete cocktail
